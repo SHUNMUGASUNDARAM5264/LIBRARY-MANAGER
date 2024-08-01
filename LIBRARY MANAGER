@@ -1,0 +1,186 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <iomanip>
+
+class Book {
+public:
+    std::string title;
+    std::string author;
+    int bookID;
+    bool isIssued;
+
+    Book(int id, std::string t, std::string a) : bookID(id), title(t), author(a), isIssued(false) {}
+};
+
+class Borrower {
+public:
+    std::string name;
+    int borrowerID;
+
+    Borrower(int id, std::string n) : borrowerID(id), name(n) {}
+};
+
+class Transaction {
+public:
+    int bookID;
+    int borrowerID;
+    time_t issueDate;
+    time_t returnDate;
+    bool isReturned;
+
+    Transaction(int bID, int brID) : bookID(bID), borrowerID(brID), isReturned(false) {
+        time(&issueDate);
+    }
+
+    void returnBook() {
+        time(&returnDate);
+        isReturned = true;
+    }
+
+    double calculateFine() {
+        if (!isReturned) {
+            time_t now;
+            time(&now);
+            double seconds = difftime(now, issueDate);
+            double days = seconds / (60 * 60 * 24);
+            if (days > 14) {
+                return (days - 14) * 1.0; // $1 fine per day after 14 days
+            }
+        }
+        return 0.0;
+    }
+};
+
+std::vector<Book> books;
+std::vector<Borrower> borrowers;
+std::vector<Transaction> transactions;
+
+void addBook() {
+    int id;
+    std::string title, author;
+    std::cout << "Enter book ID: ";
+    std::cin >> id;
+    std::cin.ignore();
+    std::cout << "Enter book title: ";
+    std::getline(std::cin, title);
+    std::cout << "Enter book author: ";
+    std::getline(std::cin, author);
+    books.push_back(Book(id, title, author));
+    std::cout << "Book added successfully!\n";
+}
+
+void addBorrower() {
+    int id;
+    std::string name;
+    std::cout << "Enter borrower ID: ";
+    std::cin >> id;
+    std::cin.ignore();
+    std::cout << "Enter borrower name: ";
+    std::getline(std::cin, name);
+    borrowers.push_back(Borrower(id, name));
+    std::cout << "Borrower added successfully!\n";
+}
+
+void issueBook() {
+    int bookID, borrowerID;
+    std::cout << "Enter book ID to issue: ";
+    std::cin >> bookID;
+    std::cout << "Enter borrower ID: ";
+    std::cin >> borrowerID;
+
+    for (Book &book : books) {
+        if (book.bookID == bookID) {
+            if (book.isIssued) {
+                std::cout << "Book is already issued.\n";
+                return;
+            }
+            book.isIssued = true;
+            transactions.push_back(Transaction(bookID, borrowerID));
+            std::cout << "Book issued successfully!\n";
+            return;
+        }
+    }
+    std::cout << "Book ID not found.\n";
+}
+
+void returnBook() {
+    int bookID;
+    std::cout << "Enter book ID to return: ";
+    std::cin >> bookID;
+
+    for (Transaction &trans : transactions) {
+        if (trans.bookID == bookID && !trans.isReturned) {
+            trans.returnBook();
+            for (Book &book : books) {
+                if (book.bookID == bookID) {
+                    book.isIssued = false;
+                    std::cout << "Book returned successfully!\n";
+                    std::cout << "Fine: $" << std::fixed << std::setprecision(2) << trans.calculateFine() << "\n";
+                    return;
+                }
+            }
+        }
+    }
+    std::cout << "Transaction not found.\n";
+}
+
+void searchBook() {
+    std::string title;
+    std::cin.ignore();
+    std::cout << "Enter book title to search: ";
+    std::getline(std::cin, title);
+
+    for (const Book &book : books) {
+        if (book.title == title) {
+            std::cout << "Book ID: " << book.bookID << "\n";
+            std::cout << "Author: " << book.author << "\n";
+            std::cout << "Status: " << (book.isIssued ? "Issued" : "Available") << "\n";
+            return;
+        }
+    }
+    std::cout << "Book not found.\n";
+}
+
+void showMenu() {
+    std::cout << "Library Management System\n";
+    std::cout << "1. Add Book\n";
+    std::cout << "2. Add Borrower\n";
+    std::cout << "3. Issue Book\n";
+    std::cout << "4. Return Book\n";
+    std::cout << "5. Search Book\n";
+    std::cout << "6. Exit\n";
+    std::cout << "Choose an option: ";
+}
+
+int main() {
+    int choice;
+    while (true) {
+        showMenu();
+        std::cin >> choice;
+        switch (choice) {
+            case 1:
+                addBook();
+                break;
+            case 2:
+                addBorrower();
+                break;
+            case 3:
+                issueBook();
+                break;
+            case 4:
+                returnBook();
+                break;
+            case 5:
+                searchBook();
+                break;
+            case 6:
+                std::cout << "Exiting the program.\n";
+                return 0;
+            default:
+                std::cout << "Invalid choice. Please try again.\n";
+        }
+        std::cout << std::endl;
+    }
+}
